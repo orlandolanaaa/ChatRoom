@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Events;
-
+use App\Chat;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -20,7 +20,7 @@ class ChatSent implements ShouldBroadcast
      *
      * @return void
      */
-    public function __construct($message)
+    public function __construct(Chat $message)
     {
         $this->message = $message;
     }

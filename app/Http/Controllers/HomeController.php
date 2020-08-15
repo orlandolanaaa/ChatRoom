@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Chat;
 use Illuminate\Http\Request;
 use App\Events\ChatSent;
 use Illuminate\Mail\Message;
@@ -27,7 +27,10 @@ class HomeController extends Controller
     {
         return view('home');
     }
-
+    public function fetchMessage()
+    {
+        return Chat::with('user')->get();
+    }
     public function sendMessage(Request $request)
     {
         $message =$request->user()->chats()->create([

@@ -6,13 +6,14 @@
                     <div class="card-header">Chat Room</div>
 
                     <div id="chat-box" class="card-body bg-secondary">
-                        <div class="media bg-light rounded">
+                        <div class="media m-2 bg-light rounded"
+                            v-for="(chat,index) in messages" :key="index"
+                        >
                             <div class="media-body m-2">
                                 <h5 class="mt-0">
-                                    LoremIpsumalsjdlasldjlajsldlasjd
-                                    kajhskdjhakshdkjakshdkakshdkhakjshd
-                                    kajsldjladsj
+                                    {{chat.user.name}}
                                 </h5>
+                                {{chat.message}}
                             </div>
                         </div>
                     </div>
@@ -22,9 +23,10 @@
                             <input type="text" name="" id=""
                             class="form-control"
                             v-model="message"
-                            @keyup.enter="sendMessage()">
+                            @keyup.enter="sendMessage()"
+                            @keydown="typingEvent()">
                         </div>
-                        <p class="text-muted">Username typing...</p>
+                        <p class="text-muted" v-if = "userTyping">{{userTyping.name}} typing</p>
                     </div>
                 </div>
             </div>
@@ -33,8 +35,9 @@
                     <div class="card-header">
                        <div id="user-online" class="card-body bg-secondary">
                            <ul class="list-group">
-                               <li class="list-group-item">
-                                   Username
+                               <li class="list-group-item"
+                               v-for="(users,index) in users" :key="index">
+                                   {{user.name}}
                                </li>
                            </ul>
                        </div>
@@ -50,13 +53,28 @@
         data(){
             return{
                 message :'',
-                messages:[]
+                messages:[],
+                users:[],
+                userTyping:'',
+                typingTimer:false
             }
         },
         props:{
             user:Object
         },
         methods:{
+            fetchMessage(){
+                axios.get('/fetch')
+                .then((result)=>{
+                    this.messages = result.data;
+                    console.log(result.data);
+                }).catch((err)=>{
+                    console.log(err);
+                });
+            },typingEvent(){
+                Echo.join('chat')
+                .whisper('typing',this.user);
+            },
             sendMessage(){
                 this.messages.push({
                     user:this.user,
@@ -71,12 +89,48 @@
                 });
                 this.message = '';
                 // console.log(this.message);
+            },
+            scrollDown(){
+                let container = document.getElementById('chat-box');
+                let scrollHeight = container.scrollHeight;
+                container.scrollTop = scrollHeight;
             }
         },
         mounted() {
-           Echo.join('chat').listen('ChatSent',(e)=>{
+           this.fetchMessage();
+           Echo.join('chat')
+            .here((users) => {
+             this.users = users;
+            })
+            .joining((user) => {
+                this.users.push(user);
+                console.log(user.name);
+            })
+            .leaving((user) => {
+                this.users = this.users.filter(u=>u.id !=user.id);
+                console.log(user.name);
+            }).listen('ChatSent',(e)=>{
+               this.messages.push(e.message);
                console.log(e);
-           }) // console.log('Component mounted.')
+            }).listenForWhisper('typing',(user)=>{
+                this.userTyping = user ;
+                if (this.typingTimer){
+                    clearTimeout(this.typingTimer);
+                }
+                setTimeout(()=>{
+                    this.userTyping = false;
+                },2000)
+            }) // console.log('Component mounted.')
+            this.scrollDown();
+        },
+        updated(){
+            this.scrollDown();
         }
     }
 </script>
+<style lang="css" scoped>
+#chat-box{
+    overflow:auto;
+    height:300px;
+}
+</style>
